@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package customer.view;
+
+option java_outer_classname = "CustomerViewModel";
+
+import "customer/domain/customer_domain.proto";
+import "kalix/annotations.proto";
+
+message ByEmailRequest {
+  string email = 1;
+}
+
+message ByNameRequest {
+  string customer_name = 1;
+}
+
+message EmailAddress {
+  string name = 1;
+  string email = 2;
+}
+
+service CustomerByEmail {
+  option (kalix.codegen) = {
+    view: {}
+  };
+
+  rpc UpdateCustomer(domain.CustomerState) returns (domain.CustomerState) {
+    option (kalix.method).eventing.in = {
+      value_entity: "customers"
+    };
+    option (kalix.method).view.update = {
+      table: "customers_by_email"
+    };
+  }
+
+  rpc GetCustomer(ByEmailRequest) returns (domain.CustomerState) {
+    option (kalix.method).view.query = {
+      query: "SELECT * from customers_by_email WHERE email = :email"
+    };
+  }
+}
+
+service CustomerByName {
+  option (kalix.codegen) = {
+    view: {}
+  };
+
+  rpc UpdateCustomer(domain.CustomerState) returns (domain.CustomerState) {
+    option (kalix.method).eventing.in = {
+      value_entity: "customers"
+    };
+    option (kalix.method).view.update = {
+      table: "customers"
+    };
+  }
+
+  rpc GetCustomers(ByNameRequest) returns (stream domain.CustomerState) {
+    option (kalix.method).view.query = {
+      query: "SELECT * from customers WHERE name = :customer_name"
+    };
+  }
+}
+
+service CustomerEmailsByName {
+  option (kalix.codegen) = {
+    view: {}
+  };
+
+  rpc UpdateCustomer(domain.CustomerState) returns (domain.CustomerState) {
+    option (kalix.method).eventing.in = {
+      value_entity: "customers"
+    };
+    option (kalix.method).view.update = {
+      table: "customer_emails"
+    };
+  }
+
+  rpc GetCustomerEmails(ByNameRequest) returns (stream EmailAddress) {
+    option (kalix.method).view.query = {
+      query: "SELECT name, email from customer_emails WHERE name = :customer_name"
+    };
+  }
+}
