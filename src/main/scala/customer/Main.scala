@@ -6,6 +6,7 @@ import customer.view.CustomerByNameView
 import customer.view.CustomerEmailsByNameView
 import kalix.scalasdk.Kalix
 import org.slf4j.LoggerFactory
+import customer.view.CustomerAddressesByNameView
 
 // This class was initially generated based on the .proto definition by Kalix tooling.
 //
@@ -23,6 +24,7 @@ object Main {
     // `Kalix()` instance.
     KalixFactory.withComponents(
       new Customer(_),
+      new CustomerAddressesByNameView(_),
       new CustomerByEmailView(_),
       new CustomerByNameView(_),
       new CustomerEmailsByNameView(_))

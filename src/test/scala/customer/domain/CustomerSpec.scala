@@ -11,31 +11,46 @@ class CustomerSpec
     extends AnyWordSpec
     with Matchers {
 
-  "Customer" must {
+  private val apiCustomer = api.Customer(
+        "abc123",
+        "someone@example.com",
+        "Someone",
+        List(
+          new api.Address(
+            "123 Some Street",
+            "Somewhere",
+            "Of Mind",
+            "11111",
+            true
+          ),
+          new api.Address(
+            "321 Elm Street",
+            "Somewhere Else",
+            "Of Decay",
+            "99999",
+            false
+          )
+        )
+      )
 
-    "have example test that can be removed" in {
-      val service = CustomerTestKit(new Customer(_))
-      pending
-      // use the testkit to execute a command
-      // and verify final updated state:
-      // val result = service.someOperation(SomeRequest)
-      // verify the reply
-      // val reply = result.getReply()
-      // reply shouldBe expectedReply
-      // verify the final state after the command
-      // service.currentState() shouldBe expectedState
-    }
+  "Customer" must {
 
     "handle command Create" in {
       val service = CustomerTestKit(new Customer(_))
-      pending
-      // val result = service.create(api.Customer(...))
+      
+      val result = service.create(apiCustomer)
+
+      result.reply shouldBe Empty.defaultInstance
+      service.currentState().addresses.length shouldBe 2
     }
 
     "handle command GetCustomer" in {
       val service = CustomerTestKit(new Customer(_))
-      pending
-      // val result = service.getCustomer(api.GetCustomerRequest(...))
+
+      service.create(apiCustomer)
+
+      val getResult = service.getCustomer(api.GetCustomerRequest("abc123"))
+      getResult.reply shouldBe apiCustomer
     }
 
   }

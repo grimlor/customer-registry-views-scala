@@ -1,7 +1,5 @@
 package customer.api
 
-import akka.actor.ActorSystem
-import com.google.protobuf.empty.Empty
 import customer.Main
 import kalix.scalasdk.testkit.KalixTestKit
 import org.scalatest.BeforeAndAfterAll
@@ -11,6 +9,16 @@ import org.scalatest.time.Millis
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
+import customer.view.CustomerAddressesByName
+import customer.view.ByNameRequest
+import customer.view.CustomerEmailsByName
+import customer.view.EmailAddress
+import akka.stream.scaladsl.Sink
+import akka.NotUsed
+import akka.stream.scaladsl.Source
+import akka.stream.Materializer
+import customer.view.Addresses
+import customer.domain.{Customer => DomainCustomer}
 
 // This class was initially generated based on the .proto definition by Kalix tooling.
 //
@@ -27,15 +35,70 @@ class CustomerServiceIntegrationSpec
     PatienceConfig(Span(5, Seconds), Span(500, Millis))
 
   private val testKit = KalixTestKit(Main.createKalix()).start()
+  implicit private val mat = Materializer.matFromSystem(testKit.system)
 
   private val client = testKit.getGrpcClient(classOf[CustomerService])
+  private val customerEmailsView = testKit.getGrpcClient(classOf[CustomerEmailsByName])
+  private val customerAddressesView = testKit.getGrpcClient(classOf[CustomerAddressesByName])
+
+  private val testCustomer = Customer(
+        "abc123",
+        "someone@example.com",
+        "Someone",
+        List(
+          new Address(
+            "123 Some Street",
+            "Somewhere",
+            "Of Mind",
+            "11111",
+            true
+          ),
+          new Address(
+            "321 Elm Street",
+            "Somewhere Else",
+            "Of Decay",
+            "99999",
+            false
+          )
+        )
+  )
 
   "CustomerService" must {
 
-    "have example test that can be removed" in {
-      pending
-      // use the gRPC client to send requests to the
-      // proxy and verify the results
+    "allow creation of a new Customer" in {
+      val createResult = client.create(testCustomer)
+      createResult.futureValue
+
+      val getResult = client.getCustomer(GetCustomerRequest("abc123"))
+      getResult.futureValue shouldBe testCustomer
+    }
+
+  }
+
+  "CustomerEmailsByName" must {
+
+    "return the emails for a given name" in {
+      val viewSource: Source[EmailAddress,NotUsed] = customerEmailsView.getCustomerEmails(ByNameRequest("Someone"))
+      Thread.sleep(5000)
+      val result = viewSource.runWith(Sink.seq[EmailAddress]).futureValue
+      
+      val expected = EmailAddress(testCustomer.name, testCustomer.email)
+      result.length shouldBe 1
+      result(0) shouldBe expected
+    }
+
+  }
+
+  "CustomerAddressesByName" must {
+
+    "return the addresses in testCustomer" in {
+      val viewSource = customerAddressesView.getCustomerAddresses(ByNameRequest("Someone"))
+      Thread.sleep(5000)
+      val result = viewSource.runWith(Sink.seq[Addresses]).futureValue
+
+      val expected = Addresses(testCustomer.customerId, testCustomer.addresses.map(DomainCustomer.convertToDomain))
+      result.length shouldBe 1
+      result(0) shouldBe expected
     }
 
   }

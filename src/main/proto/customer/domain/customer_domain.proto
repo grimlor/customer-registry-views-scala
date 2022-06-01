@@ -2,16 +2,35 @@ syntax = "proto3";
 
 package customer.domain;
 
+// {
+//   "customer_id": "abc123",
+//   "email": "someone@example.com",
+//   "name": "Someone",
+//   "addresses": [{
+//     "street": "123 Some Street",
+//     "city": "Somewhere",
+//     "state": "Of Mind",
+//     "zip": "11111",
+//     "primary": true
+//   }, {
+//     "street": "321 Elm Street",
+//     "city": "Somewhere Else",
+//     "state": "Of Decay",
+//     "zip": "99999",
+//     "primary": false
+//   }]
+// }
+
 message CustomerState {
   string customer_id = 1;
   string email = 2;
   string name = 3;
-  Address address = 4;
+  repeated Address addresses = 4;
 }
-
 message Address {
   string street = 1;
   string city = 2;
   string state = 3;
   string zip = 4;
+  bool primary = 5;
 }

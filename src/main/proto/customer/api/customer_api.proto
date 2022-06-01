@@ -9,7 +9,7 @@ message Customer {
   string customer_id = 1 [(kalix.field).entity_key = true];
   string email = 2;
   string name = 3;
-  Address address = 4;
+  repeated Address addresses = 4;
 }
 
 message Address {
@@ -17,6 +17,7 @@ message Address {
   string city = 2;
   string state = 3;
   string zip = 4;
+  bool primary = 5;
 }
 
 message GetCustomerRequest {
