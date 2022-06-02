@@ -19,6 +19,7 @@ import akka.stream.scaladsl.Source
 import akka.stream.Materializer
 import customer.view.Addresses
 import customer.domain.{Customer => DomainCustomer}
+import org.scalatest.concurrent.Eventually
 
 // This class was initially generated based on the .proto definition by Kalix tooling.
 //
@@ -29,6 +30,7 @@ class CustomerServiceIntegrationSpec
     extends AnyWordSpec
     with Matchers
     with BeforeAndAfterAll
+    with Eventually
     with ScalaFutures {
 
   implicit private val patience: PatienceConfig =
@@ -79,12 +81,13 @@ class CustomerServiceIntegrationSpec
 
     "return the emails for a given name" in {
       val viewSource: Source[EmailAddress,NotUsed] = customerEmailsView.getCustomerEmails(ByNameRequest("Someone"))
-      Thread.sleep(5000)
-      val result = viewSource.runWith(Sink.seq[EmailAddress]).futureValue
       
       val expected = EmailAddress(testCustomer.name, testCustomer.email)
-      result.length shouldBe 1
-      result(0) shouldBe expected
+      eventually {
+        val result = viewSource.runWith(Sink.seq[EmailAddress]).futureValue
+        result.length shouldBe 1
+        result(0) shouldBe expected
+      }
     }
 
   }
@@ -93,12 +96,13 @@ class CustomerServiceIntegrationSpec
 
     "return the addresses in testCustomer" in {
       val viewSource = customerAddressesView.getCustomerAddresses(ByNameRequest("Someone"))
-      Thread.sleep(5000)
-      val result = viewSource.runWith(Sink.seq[Addresses]).futureValue
 
-      val expected = Addresses(testCustomer.customerId, testCustomer.addresses.map(DomainCustomer.convertToDomain))
-      result.length shouldBe 1
-      result(0) shouldBe expected
+      val expected = Addresses(testCustomer.addresses.map(DomainCustomer.convertToDomain))
+      eventually {
+        val result = viewSource.runWith(Sink.seq[Addresses]).futureValue
+        result.length shouldBe 1
+        result(0) shouldBe expected
+      }
     }
 
   }
