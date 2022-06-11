@@ -21,6 +21,7 @@ message EmailAddress {
 }
 
 message Addresses {
+  string name = 1;
   repeated domain.Address addresses = 2;
 }
 
@@ -103,7 +104,7 @@ service CustomerAddressesByName {
 
   rpc GetCustomerAddresses(ByNameRequest) returns (stream Addresses) {
     option (kalix.method).view.query = {
-      query: "SELECT addresses as addresses FROM customer_addresses WHERE name = :customer_name"
+      query: "SELECT name, addresses FROM customer_addresses WHERE name = :customer_name"
     };
   }
 }
