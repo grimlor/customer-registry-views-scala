@@ -1,26 +1,28 @@
 package customer.api
 
+import akka.NotUsed
+import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
 import customer.Main
+import customer.domain.{Customer => DomainCustomer}
+import customer.view.Addresses
+import customer.view.ByNameRequest
+import customer.view.CustomerAddressesByName
+import customer.view.CustomerEmailsByName
+import customer.view.EmailAddress
 import kalix.scalasdk.testkit.KalixTestKit
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.Millis
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
-import customer.view.ByNameRequest
-import customer.view.CustomerEmailsByName
-import customer.view.EmailAddress
-import akka.stream.scaladsl.Sink
-import akka.NotUsed
-import akka.stream.scaladsl.Source
-import akka.stream.Materializer
-import customer.view.Addresses
-import customer.domain.{Customer => DomainCustomer}
-import org.scalatest.concurrent.Eventually
-import customer.view.ByEmailRequest
+import customer.view.AddressesById
 import customer.view.CustomerAddressesByEmail
+import customer.view.ByEmailRequest
 
 // This class was initially generated based on the .proto definition by Kalix tooling.
 //
@@ -42,8 +44,27 @@ class CustomerServiceIntegrationSpec
 
   private val client = testKit.getGrpcClient(classOf[CustomerService])
   private val customerEmailsView = testKit.getGrpcClient(classOf[CustomerEmailsByName])
-  private val customerAddressesView = testKit.getGrpcClient(classOf[CustomerAddressesByEmail])
+  private val customerAddressesByNameView = testKit.getGrpcClient(classOf[CustomerAddressesByName])
+  private val customerAddressesByEmailView = testKit.getGrpcClient(classOf[CustomerAddressesByEmail])
 
+// {
+//   "customer_id": "abc123",
+//   "email": "someone@example.com",
+//   "name": "Someone",
+//   "addresses": [{
+//     "street": "123 Some Street",
+//     "city": "Somewhere",
+//     "state": "Of Mind",
+//     "zip": "11111",
+//     "primary": true
+//   }, {
+//     "street": "321 Elm Street",
+//     "city": "Somewhere Else",
+//     "state": "Of Decay",
+//     "zip": "99999",
+//     "primary": false
+//   }]
+// }
   private val testCustomer = Customer(
         "abc123",
         "someone@example.com",
@@ -72,7 +93,7 @@ class CustomerServiceIntegrationSpec
       val createResult = client.create(testCustomer)
       createResult.futureValue
 
-      val getResult = client.getCustomer(GetCustomerRequest("abc123"))
+      val getResult = client.getCustomer(GetCustomerRequest(testCustomer.customerId))
       getResult.futureValue shouldBe testCustomer
     }
 
@@ -81,7 +102,7 @@ class CustomerServiceIntegrationSpec
   "CustomerEmailsByName" must {
 
     "return the emails for a given name" in {
-      val viewSource: Source[EmailAddress,NotUsed] = customerEmailsView.getCustomerEmails(ByNameRequest("Someone"))
+      val viewSource: Source[EmailAddress,NotUsed] = customerEmailsView.getCustomerEmails(ByNameRequest(testCustomer.name))
       
       val expected = EmailAddress(testCustomer.name, testCustomer.email)
       eventually {
@@ -94,15 +115,29 @@ class CustomerServiceIntegrationSpec
   }
 
   "CustomerAddressesByEmail" must {
+    
+    "return the repeated addresses in testCustomer" in {
+      val viewSource = customerAddressesByEmailView.getCustomerAddresses(ByEmailRequest(testCustomer.email))
 
-    "return the addresses in testCustomer" in {
-      // val viewSource = customerAddressesView.getCustomerAddresses(ByEmailRequest("someone@example.com"))
+      val expected = Addresses(testCustomer.addresses.map(DomainCustomer.convertToDomain))
+      eventually {
+        val result = viewSource.futureValue
+        result shouldBe expected
+      }
+    }
+  }
 
-      // val expected = Addresses(testCustomer.addresses.map(DomainCustomer.convertToDomain))
-      // eventually {
-      //   val result = viewSource.futureValue
-      //   result shouldBe expected
-      // }
+  "CustomerAddressesByName" must {
+
+    "return a stream of customer IDs and repeated addresses in testCustomer" in {
+      val viewSource = customerAddressesByNameView.getCustomerAddresses(ByNameRequest(testCustomer.name))
+
+      val expected = AddressesById(testCustomer.customerId, testCustomer.addresses.map(DomainCustomer.convertToDomain))
+      eventually {
+        val result = viewSource.runWith(Sink.seq[AddressesById]).futureValue
+        result.length shouldBe 1
+        result(0) shouldBe expected
+      }
     }
 
   }

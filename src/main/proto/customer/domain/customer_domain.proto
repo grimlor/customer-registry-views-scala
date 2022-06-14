@@ -2,25 +2,6 @@ syntax = "proto3";
 
 package customer.domain;
 
-// {
-//   "customer_id": "abc123",
-//   "email": "someone@example.com",
-//   "name": "Someone",
-//   "addresses": [{
-//     "street": "123 Some Street",
-//     "city": "Somewhere",
-//     "state": "Of Mind",
-//     "zip": "11111",
-//     "primary": true
-//   }, {
-//     "street": "321 Elm Street",
-//     "city": "Somewhere Else",
-//     "state": "Of Decay",
-//     "zip": "99999",
-//     "primary": false
-//   }]
-// }
-
 message CustomerState {
   string customer_id = 1;
   string email = 2;
