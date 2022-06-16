@@ -6,12 +6,12 @@ message CustomerState {
   string customer_id = 1;
   string email = 2;
   string name = 3;
-  Address address = 4;
+  repeated Address addresses = 4;
 }
-
 message Address {
   string street = 1;
   string city = 2;
   string state = 3;
   string zip = 4;
+  bool primary = 5;
 }

@@ -14,16 +14,25 @@ class Customer(context: ValueEntityContext) extends AbstractCustomer {
   override def emptyState: CustomerState = CustomerState()
 
   override def create(currentState: CustomerState, customer: api.Customer): ValueEntity.Effect[Empty] = {
-    val state = convertToDomain(customer)
+    val state = Customer.convertToDomain(customer)
     effects.updateState(state).thenReply(Empty.defaultInstance)
   }
 
+  override def getCustomer(currentState: CustomerState, getCustomerRequest: api.GetCustomerRequest): ValueEntity.Effect[api.Customer] =
+    if (currentState.customerId == "") {
+      effects.error(s"Customer ${getCustomerRequest.customerId} has not been created.")
+    } else {
+      effects.reply(Customer.convertToApi(currentState))
+    }
+}
+
+object Customer {
   def convertToDomain(customer: api.Customer): CustomerState = 
     CustomerState(
       customerId = customer.customerId,
       email = customer.email,
       name = customer.name,
-      address = customer.address.map(convertToDomain)
+      addresses = customer.addresses.map(convertToDomain)
     )
 
   def convertToDomain(address: api.Address): Address =
@@ -31,22 +40,16 @@ class Customer(context: ValueEntityContext) extends AbstractCustomer {
       street = address.street,
       city = address.city,
       state = address.state,
-      zip = address.zip
+      zip = address.zip,
+      primary = address.primary
     )
-
-  override def getCustomer(currentState: CustomerState, getCustomerRequest: api.GetCustomerRequest): ValueEntity.Effect[api.Customer] =
-    if (currentState.customerId == "") {
-      effects.error(s"Customer ${getCustomerRequest.customerId} has not been created.")
-    } else {
-      effects.reply(convertToApi(currentState))
-    }
 
   def convertToApi(customer: CustomerState): api.Customer = 
     api.Customer(
       customerId = customer.customerId,
       email = customer.email,
       name = customer.name,
-      address = customer.address.map(convertToApi)
+      addresses = customer.addresses.map(convertToApi)
     )
 
   def convertToApi(address: Address): api.Address = 
@@ -54,7 +57,8 @@ class Customer(context: ValueEntityContext) extends AbstractCustomer {
       street = address.street,
       city = address.city,
       state = address.state,
-      zip = address.zip
+      zip = address.zip,
+      primary = address.primary
     )
-}
 
+}
